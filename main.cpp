@@ -6,10 +6,14 @@
 #include <unistd.h> // Include for usleep function
 #include <cstdlib>  // Include for system function
 #include <fstream>  // Include for ifstream and ofstream
+#include <string>   // Include for string
 using namespace std;
 
 // Declaring functions' prototypes
 void printGrid(bool **grid, int SIZE);
+void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations);
+void writeFile(bool **grid, int SIZE, string fileName);
+void readFile(bool **grid, int SIZE, string fileName);
 void Info();
 void welcome();
 
@@ -42,9 +46,6 @@ void welcome()
         cout << "Do you want to start the game? (Y/N): ";
         cin >> choice;
     }
-    cout << "Press ENTER to continue.";
-    cin.ignore();
-    cin.get();
     system("clear"); // clears the screen
     if (choice == 'y' || choice == 'Y')
     {
@@ -61,24 +62,21 @@ void welcome()
         usleep(1000000);
         cout << endl;
 
-        cout << "Press ENTER to continue.";
-        cin.ignore();
-        cin.get();
         system("clear"); // clears the screen
         Info();          // start the game
     }
     else
     {
-        cout << "Exiting the game ." << endl;
+        cout << "Exiting the game .";
         usleep(1000000);
 
-        cout << " ." << flush;
+        cout << " .";
         usleep(1000000);
 
-        cout << " ." << flush;
+        cout << " .";
         usleep(1000000);
 
-        cout << " ." << endl;
+        cout << " .";
         usleep(1000000);
         cout << endl;
         return;
@@ -97,17 +95,14 @@ void welcome()
 /*Collects all the necessary information from user for the game and call further functions*/
 void Info()
 {
-    // Declaring variables
+    // ===============================Declaring variables===============================
     int *SIZE = new int;
     *SIZE = 20;
     bool **grid = new bool *[*SIZE]; // the main grid
     for (int i = 0; i < *SIZE; i++)
-    {
         grid[i] = new bool[*SIZE];
-    }
 
     int numberOfGenerations(0);
-    int numberOfCells(0);
     cout << "Enter the following information:" << endl;
     cout << "Enter the number of generations you want to simulate: ";
     cin >> numberOfGenerations;
@@ -119,9 +114,7 @@ void Info()
     }
 
     // Inputting user's choice
-    cout << "Do you want to write out the alive cells or "
-         << "do you want to select from one of the templates? "
-         << "\n(Type 'W' or 'T' respectively): ";
+    cout << "Do you want to write out the alive cells or do you want to select from one of the templates?\n(Type 'W' or 'T' respectively): ";
     char choice; // variable for user's choice
     cin >> choice;
     while (choice != 'W' && choice != 'w' && choice != 'T' && choice != 't') // input validation
@@ -130,8 +123,10 @@ void Info()
         cin >> choice;
     }
 
-    if (choice == 'W' || choice == 'w') // if user wants to write out
+    //===============================if user wants to write out===============================
+    if (choice == 'W' || choice == 'w')
     {
+        int numberOfCells(0);
         cout << "Enter the number of cells alive: ";
         cin >> numberOfCells;
         while (numberOfCells < 0 || numberOfCells > 400) // input validation
@@ -144,7 +139,7 @@ void Info()
         for (int i = 0; i < numberOfCells; i++)
         {
             int x, y;
-            cout << "Enter the coordinates of the cell(1-20) :)";
+            cout << "Enter the coordinates of the cell(1-20) :)\n";
             cout << "x: ";
             cin >> x;
             while (x < 1 || x > 20) // input validation
@@ -162,149 +157,82 @@ void Info()
                 cin >> y;
             }
             // setting the cell to alive
-            grid[x + 1][y + 1] = true;
+            grid[x - 1][y - 1] = true;
         }
+
+        // printing the grid so user see what they added
+        cout << "\n\nFollowing is your layout of alive cells: " << endl;
+        printGrid(grid, *SIZE);
+
+        // Saving the layout in a file
+        cout << "\n\nDo you want to save this layout for future use? (Y/N): ";
+        char save;
+        cin >> save;
+        while (save != 'Y' && save != 'y' && save != 'N' && save != 'n')
+        {
+            cout << "Invalid choice. Please try again. (Y/N): ";
+            cin >> save;
+        }
+        if (save == 'Y' || save == 'y')
+        {
+            string fileName = "";
+            cout << "Enter the name of the file(add \".txt\" at the end): ";
+            cin >> fileName;
+            writeFile(grid, *SIZE, fileName);
+            cout << "Your layout has been saved in a file named '" << fileName << "'" << endl;
+        }
+
+        cout << "Press ENTER to continue.";
+        cin.ignore();
+        cin.get();
+        system("clear"); // clears the screen
     }
-    else // if user wants to select from one of the templates
+    //===================if user wants to select from one of the templates===================
+    else
     {
         cout << "Following are some of the templates." << endl;
 
         // Glider
         cout << "\n1. Glider" << endl;
-        ifstream gliderFile("glider.txt");
-        string line;
-        int count = 0;
-        while (getline(gliderFile, line))
-        {
-            if (count == 20)
-                break;
-            for (int i = 0; i < 20; i++)
-            {
-                if (line[i] == '1')
-                    grid[count][i] = true;
-                else
-                    grid[count][i] = false;
-            }
-            count++;
-        }
-        gliderFile.close();
-        printGrid(grid, *SIZE);
+        readFile(grid, *SIZE, "glider.txt"); // read template from file
+        printGrid(grid, *SIZE);              // print the freshly read template
 
         // Cross
         cout << "\n2. Cross" << endl;
-        ifstream crossFile("cross.txt");
-        count = 0;
-        while (getline(crossFile, line))
-        {
-            if (count == 20)
-                break;
-            for (int i = 0; i < 20; i++)
-            {
-                if (line[i] == '1')
-                    grid[count][i] = true;
-                else
-                    grid[count][i] = false;
-            }
-            count++;
-        }
-        crossFile.close();
+        readFile(grid, *SIZE, "cross.txt");
         printGrid(grid, *SIZE);
 
         // Grenade
         cout << "\n3. Grenade" << endl;
-        ifstream grenadeFile("grenade.txt");
-        count = 0;
-        while (getline(grenadeFile, line))
-        {
-            if (count == 20)
-                break;
-            for (int i = 0; i < 20; i++)
-            {
-                if (line[i] == '1')
-                    grid[count][i] = true;
-                else
-                    grid[count][i] = false;
-            }
-            count++;
-        }
-        grenadeFile.close();
+        readFile(grid, *SIZE, "grenade.txt");
         printGrid(grid, *SIZE);
 
         // Inputting user's choice
         cout << "\n\nEnter your choice: ";
-        cin >> count;
-        while (count < 1 || count > 3) // input validation
+        cin >> choice;
+        while (choice < '1' || choice > '3') // input validation
         {
             cout << "Invalid choice. Please try again." << endl;
             cout << "Enter your choice: ";
-            cin >> count;
+            cin >> choice;
         }
 
         // user selected glider
-        if (count == 1)
+        if (choice == '1')
         {
-            numberOfCells = 5;
-            ifstream theTemplate("glider.txt");
-            string line;
-            count = 0;
-            while (getline(theTemplate, line))
-            {
-                if (count == 20)
-                    break;
-                for (int i = 0; i < 20; i++)
-                {
-                    if (line[i] == '1')
-                        grid[count][i] = true;
-                    else
-                        grid[count][i] = false;
-                }
-                count++;
-            }
-            theTemplate.close();
+            readFile(grid, *SIZE, "glider.txt");
             cout << "\nGlider has been selected.\n";
         }
         // user selected cross
-        else if (count == 2)
+        else if (choice == '2')
         {
-            numberOfCells = 3;
-            ifstream theTemplate("cross.txt");
-            count = 0;
-            while (getline(theTemplate, line))
-            {
-                if (count == 20)
-                    break;
-                for (int i = 0; i < 20; i++)
-                {
-                    if (line[i] == '1')
-                        grid[count][i] = true;
-                    else
-                        grid[count][i] = false;
-                }
-                count++;
-            }
-            theTemplate.close();
+            readFile(grid, *SIZE, "cross.txt");
             cout << "\nCross has been selected.\n";
         }
         // user selected grenade
         else
         {
-            numberOfCells = 28;
-            ifstream theTemplate("grenade.txt");
-            count = 0;
-            while (getline(theTemplate, line))
-            {
-                if (count == 20)
-                    break;
-                for (int i = 0; i < 20; i++)
-                {
-                    if (line[i] == '1')
-                        grid[count][i] = true;
-                    else
-                        grid[count][i] = false;
-                }
-                count++;
-            }
-            theTemplate.close();
+            readFile(grid, *SIZE, "grenade.txt");
             cout << "\nGrenade has been selected.\n";
         }
     }
@@ -313,8 +241,62 @@ void Info()
     cin.ignore();
     cin.get();
     system("clear"); // clears the screen
+
+    // All the information has been collected. the real game starts now
+    gameOfLife(grid, SIZE, numberOfGenerations);
 }
 
+/*===============================================*/
+/*Reads the Game Grid from a text file in system*/
+void readFile(bool **grid, int SIZE, string fileName)
+{
+    ifstream myTemplate(fileName);
+    string line;
+    int count = 0;
+    while (getline(myTemplate, line))
+    {
+        if (count == 20)
+            break;
+        for (int i = 0; i < 20; i++)
+        {
+            if (line[i] == '1')
+                grid[count][i] = true;
+            else
+                grid[count][i] = false;
+        }
+        count++;
+    }
+    myTemplate.close();
+}
+
+/*===============================================*/
+/*Writes the Game Grid into a text file in system*/
+void writeFile(bool **grid, int SIZE, string fileName)
+{
+    ofstream myTemplate(fileName);
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
+            if (grid[i][j] == true)
+                myTemplate << "1";
+            else
+                myTemplate << "0";
+        }
+        myTemplate << "\n";
+    }
+    myTemplate.close();
+}
+
+/*=====================================================*/
+/*Runs the main game after the information is collected*/
+void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations)
+{
+    for (int i = 0; i < numberOfGenerations; i++)
+    {
+        printGrid(grid, *SIZE);
+    }
+}
 /*==========================================================*/
 /*Prints the Game Grid in a good format for every generation*/
 void printGrid(bool **grid, int SIZE)
