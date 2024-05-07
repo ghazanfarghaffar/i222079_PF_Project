@@ -11,7 +11,14 @@ using namespace std;
 
 // Declaring functions' prototypes
 void printGrid(bool **grid, int SIZE);
-void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations);
+void display(int **neighbourCells, int **liveCells);
+bool isNeighbour(int **neighbourCells, int x, int y);
+bool isAlive(int **liveCells, int x, int y);
+int countAliveCells(bool **grid, int x, int y, int **neighbourCells, int **liveCells);
+void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells);
+void populateNeighbours(int SIZE, int x, int y, int **neighbourCells, int *neighbourCellLast, int **liveCells);
+int populateLiveCells(bool **grid, int SIZE, int **liveCells);
+void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArray);
 void writeFile(bool **grid, int SIZE, string fileName);
 void readFile(bool **grid, int SIZE, string fileName);
 void Info();
@@ -122,6 +129,7 @@ void Info()
         cout << "Invalid choice. Please try again.\n(Type 'W' or 'T' respectively):" << endl;
         cin >> choice;
     }
+    cout << endl;
 
     //===============================if user wants to write out===============================
     if (choice == 'W' || choice == 'w')
@@ -187,6 +195,7 @@ void Info()
         cin.get();
         system("clear"); // clears the screen
     }
+
     //===================if user wants to select from one of the templates===================
     else
     {
@@ -237,13 +246,26 @@ void Info()
         }
     }
 
-    cout << "Press ENTER to continue.";
+    // ask user if they want to print the alive cells and their neighbours with every generation
+    bool displayArrays = false;
+    cout << "\nDo you want to print the alive cells and their neighbours with every generation? (Y/N): ";
+    char print;
+    cin >> print;
+    while (print != 'Y' && print != 'y' && print != 'N' && print != 'n')
+    {
+        cout << "Invalid choice. Please try again. (Y/N): ";
+        cin >> print;
+    }
+    if (print == 'Y' || print == 'y')
+        displayArrays = true;
+
+    // clear the screen
     cin.ignore();
     cin.get();
-    system("clear"); // clears the screen
+    system("clear");
 
     // All the information has been collected. the real game starts now
-    gameOfLife(grid, SIZE, numberOfGenerations);
+    gameOfLife(grid, SIZE, numberOfGenerations, displayArrays);
 }
 
 /*===============================================*/
@@ -290,13 +312,179 @@ void writeFile(bool **grid, int SIZE, string fileName)
 
 /*=====================================================*/
 /*Runs the main game after the information is collected*/
-void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations)
+void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArrays)
 {
-    // Loop through the generations
-    for (int i = 0; i < numberOfGenerations; i++)
+    // the array to store cordinates of live cells and their neighbours
+
+    // Declaring 2D array for storing live cells
+    int *aliveCellsSize = new int;
+    *aliveCellsSize = 400;
+
+    int **liveCells = new int *[*aliveCellsSize];
+    for (int i = 0; i < *aliveCellsSize; i++)
+        liveCells[i] = new int[2];
+
+    // declaring 2D array for storing their neighbours
+    int *neighbourCellsSize = new int;
+    *neighbourCellsSize = 400;
+
+    int **neighbourCells = new int *[*neighbourCellsSize];
+    for (int i = 0; i < *neighbourCellsSize; i++)
+        neighbourCells[i] = new int[2];
+
+    // ==============================Loop through the generations==============================
+    for (int i = 1; i <= numberOfGenerations; i++)
     {
+        // reseting/populating the arrays with -1
+        for (int i = 0; i < *aliveCellsSize; i++)
+        {
+            liveCells[i][0] = -1;
+            liveCells[i][1] = -1;
         }
+        for (int i = 0; i < *neighbourCellsSize; i++)
+        {
+            neighbourCells[i][0] = -1;
+            neighbourCells[i][1] = -1;
+        }
+
+        // populating the alive cell array
+        int liveCellsLast = populateLiveCells(grid, *SIZE, liveCells);
+
+        // populating the neighbour cell array
+        int *neighbourCellsLast = new int;
+        *neighbourCellsLast = 0;
+        for (int i = 0; i < liveCellsLast; i++)
+            populateNeighbours(*SIZE, liveCells[i][0], liveCells[i][1], neighbourCells, neighbourCellsLast, liveCells);
+
+        // print game grid
+        printGrid(grid, *SIZE);
+
+        // displaying the arrays
+        if (displayArrays)
+            display(neighbourCells, liveCells);
+
+        // applying the rules
+        // applyRules(grid, SIZE, neighbourCells, liveCells);
+    }
 }
+
+/*==============================*/
+/*Populates the live cells array*/
+int populateLiveCells(bool **grid, int SIZE, int **liveCells)
+{
+    int liveCellsLast = 0;
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
+            if (grid[i][j] == 1) // if sell is alive, add it to the array
+            {
+                liveCells[liveCellsLast][0] = i;
+                liveCells[liveCellsLast][1] = j;
+                liveCellsLast++;
+            }
+        }
+    }
+    return liveCellsLast;
+}
+
+/*==================================*/
+/*Populates the neighbour cell array*/
+void populateNeighbours(int SIZE, int x, int y, int **neighbourCells, int *neighbourCellLast, int **liveCells)
+{
+    for (int i = x - 1; i <= x + 1; i++)
+    {
+        for (int j = y - 1; j <= y + 1; j++)
+        {
+            if (i >= 0 && i < SIZE && j >= 0 && j < SIZE)
+            {
+                if (neighbourCells[*neighbourCellLast][0] == -1 && neighbourCells[*neighbourCellLast][1] == -1 && !(isAlive(liveCells, i, j)) && !(isNeighbour(neighbourCells, i, j)))
+                {
+                    neighbourCells[*neighbourCellLast][0] = i;
+                    neighbourCells[*neighbourCellLast][1] = j;
+                    *neighbourCellLast = *neighbourCellLast + 1;
+                }
+            }
+        }
+    }
+}
+
+/*==========================================*/
+/*Checks if the cell is present in the array*/
+bool isAlive(int **liveCells, int x, int y)
+{
+    for (int i = 0; liveCells[i][0] != -1 && liveCells[i][1] != -1; i++)
+    {
+        if (liveCells[i][0] == x && liveCells[i][1] == y)
+            return true;
+    }
+    return false;
+}
+
+/*==========================================*/
+/*Checks if the cell is present in the array*/
+bool isNeighbour(int **neighbourCells, int x, int y)
+{
+    for (int i = 0; neighbourCells[i][0] != -1 && neighbourCells[i][1] != -1; i++)
+    {
+        if (neighbourCells[i][0] == x && neighbourCells[i][1] == y)
+            return true;
+    }
+    return false;
+}
+
+/*=============================*/
+/*Applies the rules of the game*/
+void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells)
+{
+    for (int i = 0; i < *SIZE; i++)
+    {
+        for (int j = 0; j < *SIZE; j++)
+        {
+        }
+    }
+}
+
+/*================================*/
+/*Counts the number of alive cells*/
+int countAliveCells(bool **grid, int x, int y, int **neighbourCells, int **liveCells)
+{
+    int count = 0;
+    for (int i = 0; liveCells[i][0] != -1; i++)
+    {
+        if (liveCells[i][0] == x && liveCells[i][1] == y)
+            count++;
+    }
+    return 0;
+}
+
+/*==============================================*/
+/*Displays both alive cells and their neighbours*/
+void display(int **neighbourCells, int **liveCells)
+{
+    int last(-1);
+    cout << endl;
+    cout << "Alive Cells: " << endl;
+    for (int i = 0; liveCells[i][0] != -1; i++)
+    {
+        cout << "(" << liveCells[i][0] << ", " << liveCells[i][1] << ") ";
+        last++;
+    }
+    cout << "\t\tLAST = " << last;
+    last = -1;
+    cout << endl;
+    cout << endl;
+    cout << "Neighbour Cells: " << endl;
+    for (int i = 0; neighbourCells[i][0] != -1; i++)
+    {
+        cout << "(" << neighbourCells[i][0] << ", " << neighbourCells[i][1] << ") ";
+        last++;
+    }
+    cout << "\t\tLAST = " << last;
+    cout << endl;
+    cout << endl;
+}
+
 /*==========================================================*/
 /*Prints the Game Grid in a good format for every generation*/
 void printGrid(bool **grid, int SIZE)
@@ -347,6 +535,8 @@ void printGrid(bool **grid, int SIZE)
         cout << GRAY_BG << "  ";
     }
     cout << RESET_COLOR << endl;
+
+    cout << endl;
 }
 
 /*===================================THE END===================================*/
