@@ -191,7 +191,6 @@ void Info()
         }
 
         cout << "Press ENTER to continue.";
-        cin.ignore();
         cin.get();
         system("clear"); // clears the screen
     }
@@ -266,6 +265,12 @@ void Info()
 
     // All the information has been collected. the real game starts now
     gameOfLife(grid, SIZE, numberOfGenerations, displayArrays);
+
+    // freeing dynamicly allocated memory
+    for (int i = 0; i < *SIZE; i++)
+        delete[] grid[i];
+    delete[] grid;
+    delete SIZE;
 }
 
 /*===============================================*/
@@ -335,6 +340,7 @@ void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArr
     // ==============================Loop through the generations==============================
     for (int i = 1; i <= numberOfGenerations; i++)
     {
+        cout << "Generation: " << i << endl;
         // reseting/populating the arrays with -1
         for (int i = 0; i < *aliveCellsSize; i++)
         {
@@ -364,8 +370,26 @@ void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArr
             display(neighbourCells, liveCells);
 
         // applying the rules
-        // applyRules(grid, SIZE, neighbourCells, liveCells);
+        applyRules(grid, SIZE, neighbourCells, liveCells);
+
+        cout << "\nPress ENTER for next generation :) ";
+        cin.get();
+        system("clear"); // clears the screen
+
+        // freeing up the memory
+        delete neighbourCellsLast;
     }
+
+    // deleting the arrays to free the memory
+    for (int i = 0; i < *aliveCellsSize; i++)
+        delete[] liveCells[i];
+    delete[] liveCells;
+
+    for (int i = 0; i < *neighbourCellsSize; i++)
+        delete[] neighbourCells[i];
+    delete[] neighbourCells;
+
+    delete aliveCellsSize;
 }
 
 /*==============================*/
@@ -392,13 +416,14 @@ int populateLiveCells(bool **grid, int SIZE, int **liveCells)
 /*Populates the neighbour cell array*/
 void populateNeighbours(int SIZE, int x, int y, int **neighbourCells, int *neighbourCellLast, int **liveCells)
 {
+    // iterate on a 3x3 grid centered at (x, y)
     for (int i = x - 1; i <= x + 1; i++)
     {
         for (int j = y - 1; j <= y + 1; j++)
         {
-            if (i >= 0 && i < SIZE && j >= 0 && j < SIZE)
+            if (i >= 0 && i < SIZE && j >= 0 && j < SIZE) // checking bounds
             {
-                if (neighbourCells[*neighbourCellLast][0] == -1 && neighbourCells[*neighbourCellLast][1] == -1 && !(isAlive(liveCells, i, j)) && !(isNeighbour(neighbourCells, i, j)))
+                if (neighbourCells[*neighbourCellLast][0] == -1 && neighbourCells[*neighbourCellLast][1] == -1 && !(isAlive(liveCells, i, j)) && !(isNeighbour(neighbourCells, i, j))) // checking for dead neighbours
                 {
                     neighbourCells[*neighbourCellLast][0] = i;
                     neighbourCells[*neighbourCellLast][1] = j;
@@ -437,12 +462,47 @@ bool isNeighbour(int **neighbourCells, int x, int y)
 /*Applies the rules of the game*/
 void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells)
 {
+    // creating a temporary grid to work with
+    bool **tempGrid = new bool *[*SIZE];
     for (int i = 0; i < *SIZE; i++)
-    {
+        tempGrid[i] = new bool[*SIZE];
+    // copying the main grid to new grid
+    for (int i = 0; i < *SIZE; i++)
         for (int j = 0; j < *SIZE; j++)
-        {
-        }
+            tempGrid[i][j] = grid[i][j];
+
+    // ================================================applying the rules================================================
+    // applying the rules on live cells array
+    for (int i = 0; liveCells[i][0] != -1 && liveCells[i][1] != -1; i++)
+    {
+        int aliveNeighbours = countAliveCells(tempGrid, liveCells[i][0], liveCells[i][1], neighbourCells, liveCells); // counting live neighbours
+
+        if (aliveNeighbours < 2) // if less than 2 live neighbours, kill the cell
+            grid[liveCells[i][0]][liveCells[i][1]] = false;
+        else if (aliveNeighbours > 3) // if more than 3 live neighbours, kill the cell
+            grid[liveCells[i][0]][liveCells[i][1]] = false;
+        else if (aliveNeighbours == 3) // if exactly 3 live neighbours, live the cell
+            grid[liveCells[i][0]][liveCells[i][1]] = true;
     }
+    //  applying the rules on neighbour cells array
+    for (int i = 0; neighbourCells[i][0] != -1 && neighbourCells[i][1] != -1; i++)
+    {
+        int aliveNeighbours = countAliveCells(tempGrid, neighbourCells[i][0], neighbourCells[i][1], neighbourCells, liveCells); // counting live neighbours
+
+        if (aliveNeighbours < 2)
+            grid[neighbourCells[i][0]][neighbourCells[i][1]] = false;
+        else if (aliveNeighbours > 3)
+            grid[neighbourCells[i][0]][neighbourCells[i][1]] = false;
+        else if (aliveNeighbours == 3)
+            grid[neighbourCells[i][0]][neighbourCells[i][1]] = true;
+    }
+
+    // deleting the temporary grid to free the memory
+    for (int i = 0; i < *SIZE; i++)
+        delete[] tempGrid[i];
+    delete[] tempGrid;
+
+    // copying the main grid to new grid
 }
 
 /*================================*/
@@ -450,12 +510,20 @@ void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells)
 int countAliveCells(bool **grid, int x, int y, int **neighbourCells, int **liveCells)
 {
     int count = 0;
-    for (int i = 0; liveCells[i][0] != -1; i++)
+
+    // iterate on a 3x3 grid centered at (x, y)
+    for (int i = x - 1; i <= x + 1; i++)
     {
-        if (liveCells[i][0] == x && liveCells[i][1] == y)
-            count++;
+        for (int j = y - 1; j <= y + 1; j++)
+        {
+            if (i == x && j == y)
+                continue;
+            if (isAlive(liveCells, i, j))
+                count++;
+        }
     }
-    return 0;
+
+    return count;
 }
 
 /*==============================================*/
