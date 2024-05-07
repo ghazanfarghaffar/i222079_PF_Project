@@ -292,10 +292,10 @@ void writeFile(bool **grid, int SIZE, string fileName)
 /*Runs the main game after the information is collected*/
 void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations)
 {
+    // Loop through the generations
     for (int i = 0; i < numberOfGenerations; i++)
     {
-        printGrid(grid, *SIZE);
-    }
+        }
 }
 /*==========================================================*/
 /*Prints the Game Grid in a good format for every generation*/
