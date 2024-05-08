@@ -1,5 +1,13 @@
 // Ghazanfar Ghaffar 22i-2079 pf sec b final project
-// Game of life
+//=========================================================================================================
+//
+//   ####      ###    ###    ###  #####         #####   #####        ##      ##  #####  #####        ##
+//  ##        ## ##   ## #  # ##  ##           ##   ##  ##           ##      ##  ##     ##           ##
+//  ##  ###  ##   ##  ##  ##  ##  #####        ##   ##  #####        ##      ##  #####  #####        ##
+//  ##   ##  #######  ##      ##  ##           ##   ##  ##           ##      ##  ##     ##
+//   ####    ##   ##  ##      ##  #####         #####   ##           ######  ##  ##     #####        ##
+//
+//=========================================================================================================
 
 // including libraries
 #include <iostream> //for input/output
@@ -15,10 +23,11 @@ void display(int **neighbourCells, int **liveCells);
 bool isNeighbour(int **neighbourCells, int x, int y);
 bool isAlive(int **liveCells, int x, int y);
 int countAliveCells(bool **grid, int x, int y, int **neighbourCells, int **liveCells);
-void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells);
+void applyRules(bool **grid, int SIZE, int **neighbourCells, int **liveCells);
 void populateNeighbours(int SIZE, int x, int y, int **neighbourCells, int *neighbourCellLast, int **liveCells);
+void dynamicGrowth(bool **&grid, int &SIZE);
 int populateLiveCells(bool **grid, int SIZE, int **liveCells);
-void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArray);
+void gameOfLife(bool **grid, int SIZE, int numberOfGenerations, bool displayArray);
 void writeFile(bool **grid, int SIZE, string fileName);
 void readFile(bool **grid, int SIZE, string fileName);
 void Info();
@@ -103,11 +112,10 @@ void welcome()
 void Info()
 {
     // ===============================Declaring variables===============================
-    int *SIZE = new int;
-    *SIZE = 20;
-    bool **grid = new bool *[*SIZE]; // the main grid
-    for (int i = 0; i < *SIZE; i++)
-        grid[i] = new bool[*SIZE];
+    int SIZE = 20;
+    bool **grid = new bool *[SIZE]; // the main grid
+    for (int i = 0; i < SIZE; i++)
+        grid[i] = new bool[SIZE];
 
     int numberOfGenerations(0);
     cout << "Enter the following information:" << endl;
@@ -170,7 +178,7 @@ void Info()
 
         // printing the grid so user see what they added
         cout << "\n\nFollowing is your layout of alive cells: " << endl;
-        printGrid(grid, *SIZE);
+        printGrid(grid, SIZE);
 
         // Saving the layout in a file
         cout << "\n\nDo you want to save this layout for future use? (Y/N): ";
@@ -186,7 +194,7 @@ void Info()
             string fileName = "";
             cout << "Enter the name of the file(add \".txt\" at the end): ";
             cin >> fileName;
-            writeFile(grid, *SIZE, fileName);
+            writeFile(grid, SIZE, fileName);
             cout << "Your layout has been saved in a file named '" << fileName << "'" << endl;
         }
 
@@ -202,18 +210,18 @@ void Info()
 
         // Glider
         cout << "\n1. Glider" << endl;
-        readFile(grid, *SIZE, "glider.txt"); // read template from file
-        printGrid(grid, *SIZE);              // print the freshly read template
+        readFile(grid, SIZE, "glider.txt"); // read template from file
+        printGrid(grid, SIZE);              // print the freshly read template
 
         // Cross
         cout << "\n2. Cross" << endl;
-        readFile(grid, *SIZE, "cross.txt");
-        printGrid(grid, *SIZE);
+        readFile(grid, SIZE, "cross.txt");
+        printGrid(grid, SIZE);
 
         // Grenade
         cout << "\n3. Grenade" << endl;
-        readFile(grid, *SIZE, "grenade.txt");
-        printGrid(grid, *SIZE);
+        readFile(grid, SIZE, "grenade.txt");
+        printGrid(grid, SIZE);
 
         // Inputting user's choice
         cout << "\n\nEnter your choice: ";
@@ -228,19 +236,19 @@ void Info()
         // user selected glider
         if (choice == '1')
         {
-            readFile(grid, *SIZE, "glider.txt");
+            readFile(grid, SIZE, "glider.txt");
             cout << "\nGlider has been selected.\n";
         }
         // user selected cross
         else if (choice == '2')
         {
-            readFile(grid, *SIZE, "cross.txt");
+            readFile(grid, SIZE, "cross.txt");
             cout << "\nCross has been selected.\n";
         }
         // user selected grenade
         else
         {
-            readFile(grid, *SIZE, "grenade.txt");
+            readFile(grid, SIZE, "grenade.txt");
             cout << "\nGrenade has been selected.\n";
         }
     }
@@ -267,10 +275,9 @@ void Info()
     gameOfLife(grid, SIZE, numberOfGenerations, displayArrays);
 
     // freeing dynamicly allocated memory
-    for (int i = 0; i < *SIZE; i++)
+    for (int i = 0; i < SIZE; i++)
         delete[] grid[i];
     delete[] grid;
-    delete SIZE;
 }
 
 /*===============================================*/
@@ -317,13 +324,13 @@ void writeFile(bool **grid, int SIZE, string fileName)
 
 /*=====================================================*/
 /*Runs the main game after the information is collected*/
-void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArrays)
+void gameOfLife(bool **grid, int SIZE, int numberOfGenerations, bool displayArray)
 {
     // the array to store cordinates of live cells and their neighbours
 
     // Declaring 2D array for storing live cells
     int *aliveCellsSize = new int;
-    *aliveCellsSize = 400;
+    *aliveCellsSize = 50;
 
     int **liveCells = new int *[*aliveCellsSize];
     for (int i = 0; i < *aliveCellsSize; i++)
@@ -331,7 +338,7 @@ void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArr
 
     // declaring 2D array for storing their neighbours
     int *neighbourCellsSize = new int;
-    *neighbourCellsSize = 400;
+    *neighbourCellsSize = 50;
 
     int **neighbourCells = new int *[*neighbourCellsSize];
     for (int i = 0; i < *neighbourCellsSize; i++)
@@ -354,19 +361,28 @@ void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArr
         }
 
         // populating the alive cell array
-        int liveCellsLast = populateLiveCells(grid, *SIZE, liveCells);
+        int liveCellsLast = populateLiveCells(grid, SIZE, liveCells);
 
         // populating the neighbour cell array
         int *neighbourCellsLast = new int;
         *neighbourCellsLast = 0;
         for (int i = 0; i < liveCellsLast; i++)
-            populateNeighbours(*SIZE, liveCells[i][0], liveCells[i][1], neighbourCells, neighbourCellsLast, liveCells);
+            populateNeighbours(SIZE, liveCells[i][0], liveCells[i][1], neighbourCells, neighbourCellsLast, liveCells);
 
         // print game grid
-        printGrid(grid, *SIZE);
+        printGrid(grid, SIZE);
 
+        // Dynamic growth of game grid
+        for (int i = 0; i < SIZE; i++)
+        {
+            if (grid[0][i] || grid[i][0] || grid[SIZE - 1][i] || grid[i][SIZE - 1]) // If the cell is touching the boundary
+            {
+                dynamicGrowth(grid, SIZE);
+                break;
+            }
+        }
         // displaying the arrays
-        if (displayArrays)
+        if (displayArray)
             display(neighbourCells, liveCells);
 
         // applying the rules
@@ -390,6 +406,42 @@ void gameOfLife(bool **grid, int *SIZE, int numberOfGenerations, bool displayArr
     delete[] neighbourCells;
 
     delete aliveCellsSize;
+}
+
+/*===============================*/
+/*Dynamic growth of the game grid*/
+// Function to dynamically grow the grid
+void dynamicGrowth(bool **&grid, int &SIZE)
+{
+    // Increase the size of the grid by 2 in each dimension
+    int newSize = SIZE + 2;
+
+    // Create a new temporary grid with the updated size
+    bool **newGrid = new bool *[newSize];
+    for (int i = 0; i < newSize; i++)
+    {
+        newGrid[i] = new bool[newSize];
+    }
+
+    // Copy the values from the old grid to the new grid, leaving a border of empty cells
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
+            newGrid[i + 1][j + 1] = grid[i][j];
+        }
+    }
+
+    // Delete the old grid
+    for (int i = 0; i < SIZE; i++)
+    {
+        delete[] grid[i];
+    }
+    delete[] grid;
+
+    // Assign the new grid and size to the original grid and size variables
+    grid = newGrid;
+    SIZE = newSize;
 }
 
 /*==============================*/
@@ -460,15 +512,15 @@ bool isNeighbour(int **neighbourCells, int x, int y)
 
 /*=============================*/
 /*Applies the rules of the game*/
-void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells)
+void applyRules(bool **grid, int SIZE, int **neighbourCells, int **liveCells)
 {
     // creating a temporary grid to work with
-    bool **tempGrid = new bool *[*SIZE];
-    for (int i = 0; i < *SIZE; i++)
-        tempGrid[i] = new bool[*SIZE];
+    bool **tempGrid = new bool *[SIZE];
+    for (int i = 0; i < SIZE; i++)
+        tempGrid[i] = new bool[SIZE];
     // copying the main grid to new grid
-    for (int i = 0; i < *SIZE; i++)
-        for (int j = 0; j < *SIZE; j++)
+    for (int i = 0; i < SIZE; i++)
+        for (int j = 0; j < SIZE; j++)
             tempGrid[i][j] = grid[i][j];
 
     // ================================================applying the rules================================================
@@ -498,7 +550,7 @@ void applyRules(bool **grid, int *SIZE, int **neighbourCells, int **liveCells)
     }
 
     // deleting the temporary grid to free the memory
-    for (int i = 0; i < *SIZE; i++)
+    for (int i = 0; i < SIZE; i++)
         delete[] tempGrid[i];
     delete[] tempGrid;
 
