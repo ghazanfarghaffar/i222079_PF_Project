@@ -27,7 +27,7 @@ void applyRules(bool **grid, int SIZE, int **neighbourCells, int **liveCells);
 void populateNeighbours(int SIZE, int x, int y, int **neighbourCells, int *neighbourCellLast, int **liveCells);
 void dynamicGrowth(bool **&grid, int &SIZE);
 int populateLiveCells(bool **grid, int SIZE, int **liveCells);
-void gameOfLife(bool **grid, int SIZE, int numberOfGenerations, bool displayArray);
+void gameOfLife(bool **grid, int &SIZE, int numberOfGenerations, bool displayArray);
 void writeFile(bool **grid, int SIZE, string fileName);
 void readFile(bool **grid, int SIZE, string fileName);
 void Info();
@@ -274,6 +274,9 @@ void Info()
     // All the information has been collected. the real game starts now
     gameOfLife(grid, SIZE, numberOfGenerations, displayArrays);
 
+    cout << "\nGame Over. Thanks for playing.\n"
+         << endl;
+
     // freeing dynamicly allocated memory
     for (int i = 0; i < SIZE; i++)
         delete[] grid[i];
@@ -324,7 +327,7 @@ void writeFile(bool **grid, int SIZE, string fileName)
 
 /*=====================================================*/
 /*Runs the main game after the information is collected*/
-void gameOfLife(bool **grid, int SIZE, int numberOfGenerations, bool displayArray)
+void gameOfLife(bool **grid, int &SIZE, int numberOfGenerations, bool displayArray)
 {
     // the array to store cordinates of live cells and their neighbours
 
@@ -416,11 +419,11 @@ void dynamicGrowth(bool **&grid, int &SIZE)
     // Increase the size of the grid by 2 in each dimension
     int newSize = SIZE + 2;
 
-    // Create a new temporary grid with the updated size
+    // Create a new temporary grid with the updated size and initialize to false
     bool **newGrid = new bool *[newSize];
     for (int i = 0; i < newSize; i++)
     {
-        newGrid[i] = new bool[newSize];
+        newGrid[i] = new bool[newSize]();
     }
 
     // Copy the values from the old grid to the new grid, leaving a border of empty cells
